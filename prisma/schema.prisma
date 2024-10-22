@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String  @id @default(cuid())
+  clerkUserId String  @unique
+  email       String  @unique
+  name        String?
+  imageUrl    String?
+  balance     Float   @default(100000)
+
+  trades     Trade[] // Relationship with Trades to calculate profit/loss
+  simulation Simulation? // Each user has one mandatory Simulation
+
+  createAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+}
+
+model Stock {
+  id           Int               @id @default(autoincrement())
+  symbol       String
+  companyName  String
+  shortName    String
+  currentPrice Float
+  openingPrice Float
+  closingPrice Float
+  volume       Int
+  candlesticks CandlestickData[] // Relationship with CandlestickData
+  trades       Trade[] // Relationship with Trades
+  posts        Posts[]
+}
+
+// Model for the Candlestick data (historical price movements)
+model CandlestickData {
+  id            Int    @id @default(autoincrement())
+  stockId       Int
+  stock         Stock  @relation(fields: [stockId], references: [id])
+  open          Float
+  close         Float
+  high          Float
+  low           Float
+  volume        Int
+  date          String
+  simulationDay Int // The simulated day in which this data is used
+}
+
+// Model for recording the Trades that users make
+model Trade {
+  id         Int    @id @default(autoincrement())
+  userId     String
+  user       User   @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
+  stockId    Int
+  stock      Stock  @relation(fields: [stockId], references: [id])
+  tradeType  String // 'buy' or 'sell'
+  quantity   Float
+  price      Float
+  totalPrice Float
+  tradeDay   Int // Represents the current day in the 90-day simulation
+}
+
+// Model to track simulation day progression
+model Simulation {
+  id         Int      @id @default(autoincrement())
+  currentDay Int      @default(1)
+  startDate  DateTime @default(now())
+  userId     String   @unique // Foreign key for the user
+  user       User     @relation(fields: [userId], references: [clerkUserId])
+}
+
+model Posts {
+  id            Int    @id @default(autoincrement())
+  title         String
+  imageUrl      String
+  content       String
+  stockId       Int
+  stock         Stock  @relation(fields: [stockId], references: [id])
+  simulationDay Int // Represents the day number (1 to 90) when this post should be posted
+}

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Stock" ALTER COLUMN "volume" SET DATA TYPE BIGINT;
